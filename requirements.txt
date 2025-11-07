@@ -1,0 +1,28 @@
+# Django framework
+Django>=5.2.8,<6.0
+
+# Database
+psycopg2-binary>=2.9.0  # PostgreSQL adapter
+
+# WSGI server для production
+gunicorn>=21.2.0
+
+# Работа с переменными окружения (.env файлы)
+python-decouple>=3.8
+
+# Утилита для работы с DATABASE_URL
+dj-database-url>=2.1
+
+# Development and testing
+pytest>=7.4.0
+pytest-django>=4.7.0
+pytest-cov>=4.1.0
+
+# Code quality (линтеры и форматеры)
+flake8>=6.1.0
+black>=23.11.0
+isort>=5.12.0
+
+# Security checking
+bandit>=1.7.5  # Проверка безопасности кода
+safety>=2.3.0  # Проверка уязвимостей в зависимостях

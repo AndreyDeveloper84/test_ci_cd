@@ -1,0 +1,62 @@
+name: Deploy to Stage
+
+on:
+  push:
+    branches:
+      - develop
+      - stage
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: stage
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run tests
+      env:
+        DJANGO_SETTINGS_MODULE: config.settings.dev
+      run: |
+        cd mysite
+        python manage.py check
+        python manage.py test --noinput
+      continue-on-error: true
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Add server to known hosts
+      run: |
+        ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Deploy to stage server
+      env:
+        SSH_HOST: ${{ secrets.SSH_HOST }}
+        SSH_USER: ${{ secrets.SSH_USER }}
+        SSH_PORT: ${{ secrets.SSH_PORT }}
+        DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_STAGE }}
+        DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY_STAGE }}
+        DB_NAME: ${{ secrets.DB_NAME_STAGE }}
+        DB_USER: ${{ secrets.DB_USER_STAGE }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD_STAGE }}
+        DB_HOST: ${{ secrets.DB_HOST_STAGE }}
+        DB_PORT: ${{ secrets.DB_PORT_STAGE }}
+        DJANGO_ALLOWED_HOSTS: ${{ secrets.DJANGO_ALLOWED_HOSTS_STAGE }}
+      run: |
+        chmod +x scripts/deploy.sh
+        ./scripts/deploy.sh stage
+
