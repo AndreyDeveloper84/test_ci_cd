@@ -79,12 +79,22 @@ scp -P "$SSH_PORT" "$ENV_FILE" "$SSH_USER@$SSH_HOST:/tmp/.env.deploy"
 echo "🔧 Выполнение команд на сервере..."
 
 # Выполняем команды на сервере
-ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash <<'ENDSSH'
+ssh "$SSH_USER@$SSH_HOST" bash -s "$DEPLOY_PATH" "$ENVIRONMENT" "$SERVICE_NAME" <<'ENDSSH'
 set -e
+DEPLOY_PATH="$1"
+ENVIRONMENT="$2"
+SERVICE_NAME="$3"
+DJANGO_SETTINGS_MODULE="$4"
+
+echo "📂 Рабочая директория: $DEPLOY_PATH"
 cd "$DEPLOY_PATH" || exit 1
 
 echo "📂 Переход в директорию проекта..."
 cd "$DEPLOY_PATH" || { echo "❌ Директория $DEPLOY_PATH не существует!"; exit 1; }
+
+# Проверяем что мы в правильной директории
+echo "   Текущая директория: $(pwd)"
+ls -la | head -10
 
 echo "💾 Создание резервной копии..."
 BACKUP_DIR="backups/backup_$(date +%Y%m%d_%H%M%S)"
