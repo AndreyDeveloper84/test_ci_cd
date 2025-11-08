@@ -132,6 +132,7 @@ mkdir -p staticfiles
 mkdir -p media
 
 echo "🔄 Применение миграций базы данных..."
+echo "$DEPLOY_PATH"
 cd "$DEPLOY_PATH" || exit 1
 source .venv/bin/activate
 python manage.py migrate --noinput
