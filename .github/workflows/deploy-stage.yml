@@ -30,7 +30,6 @@ jobs:
       env:
         DJANGO_SETTINGS_MODULE: config.settings.dev
       run: |
-        cd mysite
         python manage.py check
         python manage.py test --noinput
 

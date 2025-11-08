@@ -73,7 +73,7 @@ jobs:
         safety check --full-report
       continue-on-error: true
 
-    - name: Run tests
+    - name: Run Django tests
       env:
         DJANGO_SETTINGS_MODULE: config.settings.dev
         DB_NAME: test_db
@@ -82,14 +82,12 @@ jobs:
         DB_HOST: localhost
         DB_PORT: 5432
       run: |
-        cd mysite
         python manage.py check
         python manage.py test --noinput
 
-    - name: Check migrations
+    - name: Check for missing migrations
       env:
         DJANGO_SETTINGS_MODULE: config.settings.dev
       run: |
-        cd mysite
         python manage.py makemigrations --check --dry-run
 
