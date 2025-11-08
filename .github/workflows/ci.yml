@@ -51,22 +51,22 @@ jobs:
     - name: Lint with flake8
       run: |
         # Остановить сборку, если есть ошибки линтинга
-        flake8 mysite/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --exclude=.venv,.git,__pycache__,.pytest_cache --count --select=E9,F63,F7,F82 --show-source --statistics
         # Предупреждения о сложности кода (не критично) не останавливают сборку
-        flake8 mysite/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        flake8 . --exclude=.venv,.git,__pycache__,.pytest_cache --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Check code formatting with black
       run: |
-        black --check mysite/
+        black --check . --exclude='/(\.venv|\.git|__pycache__|migrations)/'
       continue-on-error: true
 
     - name: Check import sorting with isort
       run: |
-        isort --check-only mysite/
+        isort --check-only . --skip .venv --skip migrations
       continue-on-error: true
     - name: Check security with bandit
       run: |
-        bandit -r mysite/
+        bandit -r . -ll --exclude ./.venv
       continue-on-error: true
     - name: Check security with safety
       run: |
