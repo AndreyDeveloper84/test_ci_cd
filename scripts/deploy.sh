@@ -132,6 +132,7 @@ mkdir -p staticfiles
 mkdir -p media
 
 echo "🔄 Применение миграций базы данных..."
+echo "Выведем содержание deploy path"
 echo "$DEPLOY_PATH"
 cd "$DEPLOY_PATH" || exit 1
 source .venv/bin/activate
