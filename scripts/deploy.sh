@@ -131,7 +131,6 @@ mkdir -p staticfiles
 mkdir -p media
 
 echo "🔄 Применение миграций базы данных..."
-cd mysite
 python manage.py migrate --noinput
 
 echo "📦 Сбор статических файлов..."
