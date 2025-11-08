@@ -81,6 +81,7 @@ echo "🔧 Выполнение команд на сервере..."
 # Выполняем команды на сервере
 ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash <<'ENDSSH'
 set -e
+cd "$DEPLOY_PATH" || exit 1
 
 echo "📂 Переход в директорию проекта..."
 cd "$DEPLOY_PATH" || { echo "❌ Директория $DEPLOY_PATH не существует!"; exit 1; }
@@ -131,9 +132,13 @@ mkdir -p staticfiles
 mkdir -p media
 
 echo "🔄 Применение миграций базы данных..."
+cd "$DEPLOY_PATH" || exit 1
+source .venv/bin/activate
 python manage.py migrate --noinput
 
 echo "📦 Сбор статических файлов..."
+cd "$DEPLOY_PATH" || exit 1
+source .venv/bin/activate
 python manage.py collectstatic --noinput --clear
 
 echo "🔍 Проверка конфигурации Django..."
@@ -143,6 +148,7 @@ cd ..
 
 echo "🔄 Перезапуск сервиса..."
 if systemctl list-unit-files | grep -q "$SERVICE_NAME.service"; then
+    cd "$DEPLOY_PATH" || exit 1
     sudo systemctl restart "$SERVICE_NAME"
     echo "  - Сервис $SERVICE_NAME перезапущен"
     
