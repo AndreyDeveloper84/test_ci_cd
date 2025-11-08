@@ -26,12 +26,13 @@ jobs:
           - 5432:5432
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
-    - name: Set up Python
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
 
     - name: Cache pip packages
       uses: actions/cache@v4
@@ -51,9 +52,8 @@ jobs:
       run: |
         # Остановить сборку, если есть ошибки линтинга
         flake8 mysite/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        # Предупреждения не останавливают сборку
+        # Предупреждения о сложности кода (не критично) не останавливают сборку
         flake8 mysite/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      continue-on-error: true
 
     - name: Check code formatting with black
       run: |
@@ -63,6 +63,14 @@ jobs:
     - name: Check import sorting with isort
       run: |
         isort --check-only mysite/
+      continue-on-error: true
+    - name: Check security with bandit
+      run: |
+        bandit -r mysite/
+      continue-on-error: true
+    - name: Check security with safety
+      run: |
+        safety check --full-report
       continue-on-error: true
 
     - name: Run tests
@@ -77,7 +85,6 @@ jobs:
         cd mysite
         python manage.py check
         python manage.py test --noinput
-      continue-on-error: true
 
     - name: Check migrations
       env:

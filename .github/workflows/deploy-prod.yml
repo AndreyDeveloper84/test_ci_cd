@@ -15,19 +15,20 @@ jobs:
     environment: production
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run tests
+    - name: Run tests before deploy to production
       env:
         DJANGO_SETTINGS_MODULE: config.settings.dev
       run: |
@@ -35,34 +36,62 @@ jobs:
         python manage.py check
         python manage.py test --noinput
 
+    - name: Security check before production
+      run: |
+        bandit -r mysite/ -ll
+        safety check
+      continue-on-error: false
+
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.9.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-    - run: |
-        mkdir -p ~/.ssh
-        echo "SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
     - name: Add server to known hosts
       run: |
-        ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -p ${{ vars.SSH_PORT }} ${{ vars.SSH_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Create backup before deploy
+      env:
+        SSH_HOST: ${{ vars.SSH_HOST }}
+        SSH_USER: ${{ vars.SSH_USER }}
+        SSH_PORT: ${{ vars.SSH_PORT }}
+        DEPLOY_PATH: ${{ vars.DEPLOY_PATH_PROD }}
+      run: |
+        ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "cd $DEPLOY_PATH && pg_dump -U ${{ vars.DB_USER_PROD }} ${{ vars.DB_NAME_PROD }} > backup_$(date +%Y%m%d_%H%M%S).sql" || echo "Backup failed, but continuing..."
 
     - name: Deploy to production server
       env:
-        SSH_HOST: ${{ secrets.SSH_HOST }}
-        SSH_USER: ${{ secrets.SSH_USER }}
-        SSH_PORT: ${{ secrets.SSH_PORT }}
-        DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_PROD }}
+        SSH_HOST: ${{ vars.SSH_HOST }}
+        SSH_USER: ${{ vars.SSH_USER }}
+        SSH_PORT: ${{ vars.SSH_PORT }}
+        DEPLOY_PATH: ${{ vars.DEPLOY_PATH_PROD }}
         DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY_PROD }}
-        DB_NAME: ${{ secrets.DB_NAME_PROD }}
-        DB_USER: ${{ secrets.DB_USER_PROD }}
+        DB_NAME: ${{ vars.DB_NAME_PROD }}
+        DB_USER: ${{ vars.DB_USER_PROD }}
         DB_PASSWORD: ${{ secrets.DB_PASSWORD_PROD }}
-        DB_HOST: ${{ secrets.DB_HOST_PROD }}
-        DB_PORT: ${{ secrets.DB_PORT_PROD }}
-        DJANGO_ALLOWED_HOSTS: ${{ secrets.DJANGO_ALLOWED_HOSTS_PROD }}
+        DB_HOST: ${{ vars.DB_HOST_PROD }}
+        DB_PORT: ${{ vars.DB_PORT_PROD }}
+        DJANGO_ALLOWED_HOSTS: ${{ vars.DJANGO_ALLOWED_HOSTS_PROD }}
       run: |
         chmod +x scripts/deploy.sh
         ./scripts/deploy.sh prod
 
+    - name: Health check
+      env:
+        SSH_HOST: ${{ vars.SSH_HOST }}
+        SSH_USER: ${{ vars.SSH_USER }}
+        SSH_PORT: ${{ vars.SSH_PORT }}
+      run: |
+        sleep 10  # Даём время на перезапуск сервиса
+        # Проверяем, что сервер отвечает (замени на свой URL)
+        # curl -f http://$SSH_HOST/ || exit 1
+        echo "⚠️ TODO: Настрой health check для своего домена"
+
+    - name: Deployment completed
+      if: success()
+      run: |
+        echo "✅ Deployment to PROD completed successfully!"   
+        echo "Server: ${{ vars.SSH_HOST }}"
+        echo "Path: ${{ vars.DEPLOY_PATH_PROD }}"
+        echo "🎉 Production is live!"

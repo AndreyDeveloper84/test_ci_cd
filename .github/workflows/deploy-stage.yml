@@ -13,26 +13,26 @@ jobs:
     environment: stage
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run tests
+    - name: Run tests before deploy to stage
       env:
         DJANGO_SETTINGS_MODULE: config.settings.dev
       run: |
         cd mysite
         python manage.py check
         python manage.py test --noinput
-      continue-on-error: true
 
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.9.0
@@ -41,22 +41,29 @@ jobs:
 
     - name: Add server to known hosts
       run: |
-        ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+        mkdir -p ~/.ssh
+        ssh-keyscan -p ${{ vars.SSH_PORT }} ${{ vars.SSH_HOST }} >> ~/.ssh/known_hosts
 
     - name: Deploy to stage server
       env:
-        SSH_HOST: ${{ secrets.SSH_HOST }}
-        SSH_USER: ${{ secrets.SSH_USER }}
-        SSH_PORT: ${{ secrets.SSH_PORT }}
-        DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_STAGE }}
+        SSH_HOST: ${{ vars.SSH_HOST }}
+        SSH_USER: ${{ vars.SSH_USER }}
+        SSH_PORT: ${{ vars.SSH_PORT }}
+        DEPLOY_PATH: ${{ vars.DEPLOY_PATH_STAGE }}
         DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY_STAGE }}
-        DB_NAME: ${{ secrets.DB_NAME_STAGE }}
-        DB_USER: ${{ secrets.DB_USER_STAGE }}
+        DB_NAME: ${{ vars.DB_NAME_STAGE }}
+        DB_USER: ${{ vars.DB_USER_STAGE }}
         DB_PASSWORD: ${{ secrets.DB_PASSWORD_STAGE }}
-        DB_HOST: ${{ secrets.DB_HOST_STAGE }}
-        DB_PORT: ${{ secrets.DB_PORT_STAGE }}
-        DJANGO_ALLOWED_HOSTS: ${{ secrets.DJANGO_ALLOWED_HOSTS_STAGE }}
+        DB_HOST: ${{ vars.DB_HOST_STAGE }}
+        DB_PORT: ${{ vars.DB_PORT_STAGE }}
+        DJANGO_ALLOWED_HOSTS: ${{ vars.DJANGO_ALLOWED_HOSTS_STAGE }}
       run: |
         chmod +x scripts/deploy.sh
         ./scripts/deploy.sh stage
 
+    - name: Deployment completed
+      if: success()
+      run: |
+        echo "✅ Deployment to STAGE completed successfully!"
+        echo "Server: ${{ vars.SSH_HOST }}"
+        echo "Path: ${{ vars.DEPLOY_PATH_STAGE }}"    
