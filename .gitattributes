@@ -1,0 +1,8 @@
+# Bash скрипты всегда с LF (Unix-стиль)
+*.sh text eol=lf
+
+# Python файлы можно конвертировать
+*.py text
+
+# Windows bat файлы с CRLF
+*.bat text eol=crlf

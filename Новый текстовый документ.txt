@@ -1,0 +1,8 @@
+DJANGO_SETTINGS_MODULE=config.settings.stage
+DJANGO_SECRET_KEY=b#5%tauh5ueqc$4$ekvq$cu5+m6idbhkufn=3!epw)xe^7yx*%
+DB_NAME=mysite_stage
+DB_USER=mysite_stage_user
+DB_PASSWORD=BadTry1984!
+DB_HOST=localhost
+DB_PORT=5432
+DJANGO_ALLOWED_HOSTS=194.87.99.126
