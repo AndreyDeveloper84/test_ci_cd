@@ -56,6 +56,7 @@ jobs:
         DB_HOST: ${{ vars.DB_HOST_STAGE }}
         DB_PORT: ${{ vars.DB_PORT_STAGE }}
         DJANGO_ALLOWED_HOSTS: ${{ vars.DJANGO_ALLOWED_HOSTS_STAGE }}
+        DJANGO_SETTINGS_MODULE: config.settings.stage
       run: |
         chmod +x scripts/deploy.sh
         ./scripts/deploy.sh stage
