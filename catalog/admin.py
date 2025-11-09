@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import catalog
+from .models import Order
 
-admin.site.register(catalog)
+admin.site.register(Order)
 
 # Register your models here.
