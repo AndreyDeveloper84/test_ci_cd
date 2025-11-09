@@ -135,6 +135,12 @@ echo "  - Загрузка переменных окружения..."
 set -a  # Автоматический export всех переменных
 source .env
 set +a
+echo "✅ Переменные окружения загружены:"
+echo "   DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE"
+echo "   DB_NAME: $DB_NAME"
+echo "   DB_USER: $DB_USER"
+
+
 
 echo "📁 Создание необходимых директорий..."
 mkdir -p logs
@@ -151,6 +157,10 @@ python manage.py migrate --noinput
 echo "📦 Сбор статических файлов..."
 cd "$DEPLOY_PATH" || exit 1
 source .venv/bin/activate
+
+set -a
+source .env
+set +a
 python manage.py collectstatic --noinput --clear
 
 echo "🔍 Проверка конфигурации Django..."
