@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',       # Сессии
     'django.contrib.messages',       # Сообщения (flash messages)
     'django.contrib.staticfiles',    # Статические файлы (CSS, JS, изображения)
+    'catalog.apps.CatalogConfig',
     
     # Здесь будут твои приложения, например:
     # 'blog',
