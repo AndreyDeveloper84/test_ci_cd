@@ -98,19 +98,32 @@ ls -la | head -10
 
 echo "💾 Создание резервной копии..."
 BACKUP_DIR="backups/backup_$(date +%Y%m%d_%H%M%S)"
-if [ -d "mysite" ]; then
-    mkdir -p backups
-    echo "  - Копирование текущей версии в $BACKUP_DIR"
-    cp -r mysite "$BACKUP_DIR" || echo "⚠️  Не удалось создать бэкап, продолжаем..."
+mkdir -p backups
+# Бэкапим ВСЁ кроме служебных папок
+if [ -f "manage.py" ]; then
+    echo "  - Создание резервной копии текущей версии в $BACKUP_DIR"
+    mkdir -p "$BACKUP_DIR"
+    # Копируем только код (исключаем .venv, logs, media и т.д.)
+    rsync -a --exclude='.venv' --exclude='logs' --exclude='staticfiles' \
+          --exclude='media' --exclude='backups' --exclude='.env' \
+          ./ "$BACKUP_DIR/" || echo "⚠️  Не удалось создать бэкап"
 fi
 
 echo "🗑️  Удаление старого кода..."
-rm -rf mysite
+find . -maxdepth 1 -type f ! -name '.env' -delete
+rm -rf config catalog scripts .github .gitignore .gitattributes README.md requirements.txt manage.py gunicorn_config.py django_secret_key.txt
 
 echo "📦 Распаковка нового кода..."
-mkdir -p mysite
 tar -xzf /tmp/mysite-deploy.tar.gz -C mysite/
 rm /tmp/mysite-deploy.tar.gz
+
+# Проверяем что файлы на месте
+if [ ! -f "manage.py" ]; then
+    echo "❌ Ошибка: manage.py не найден после распаковки!"
+    ls -la
+    exit 1
+fi
+echo "✅ Код распакован успешно"
 
 echo "🐍 Настройка виртуального окружения..."
 if [ ! -d ".venv" ]; then
@@ -124,7 +137,7 @@ echo "  - Pip version: $(pip --version)"
 
 echo "📥 Установка зависимостей..."
 pip install --upgrade pip --quiet
-pip install -r mysite/requirements.txt --quiet
+pip install -r requirements.txt --quiet
 
 echo "⚙️  Настройка переменных окружения..."
 cp /tmp/.env.deploy .env
@@ -135,12 +148,11 @@ echo "  - Загрузка переменных окружения..."
 set -a  # Автоматический export всех переменных
 source .env
 set +a
+
 echo "✅ Переменные окружения загружены:"
 echo "   DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE"
 echo "   DB_NAME: $DB_NAME"
 echo "   DB_USER: $DB_USER"
-
-
 
 echo "📁 Создание необходимых директорий..."
 mkdir -p logs
@@ -165,8 +177,6 @@ python manage.py collectstatic --noinput --clear
 
 echo "🔍 Проверка конфигурации Django..."
 python manage.py check --deploy || echo "⚠️  Есть предупреждения в конфигурации"
-
-cd ..
 
 echo "🔄 Перезапуск сервиса..."
 if systemctl list-unit-files | grep -q "$SERVICE_NAME.service"; then
